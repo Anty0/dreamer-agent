@@ -135,18 +135,13 @@ real exception, and does not propagate. A keeps running.
 5. Otherwise raise `MachineError` with the subtype and any `errors`. The Bash
    handler turns that into the shell-looking failure above.
 
-### Open point, resolved first in implementation
+### Verified by the smoke test
 
-Every structured-output example in the SDK docs is single-shot `query()`. Whether
-`output_format` applies to every turn of a multi-turn `ClaudeSDKClient` is
-unverified. Step one of the plan is a manual smoke test. If it works, B is one
-long-lived client. If it does not, B becomes one `query(resume=<id>, ...)` per
-command, which still accumulates a single session and transcript. The lock stays
-either way.
-
-The same smoke test sends `uname -a`, `pwd`, `whoami`, and `ls ~` and checks that
-nothing from the real host (Darwin, the user's home path, the user's name) leaks
-into B's answers.
+`output_format` applies to every turn of a long-lived `ClaudeSDKClient`, so B is one
+client for the whole run. The SDK tells the model its working directory, which
+leaked the real username and the repo name into `whoami`, `pwd`, and the hostname;
+the scratch directory is therefore a fresh `tempfile.mkdtemp()` path, and the prompt
+states that nothing about the hosting process is visible.
 
 ## Transcripts
 
