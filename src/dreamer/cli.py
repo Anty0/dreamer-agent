@@ -13,7 +13,7 @@ from claude_agent_sdk import AssistantMessage, ClaudeSDKError, TextBlock, ToolUs
 
 from dreamer.agent import Agent
 from dreamer.machine import Machine
-from dreamer.transcript import Transcript, generate_name, transcript_path, validate_name
+from dreamer.transcript import Transcript, generate_free_name, transcript_path, validate_name
 
 RUNS_DIR = Path("runs")
 
@@ -44,9 +44,15 @@ async def _turn(agent: Agent, prompt: str) -> None:
 
 
 async def _run(args: argparse.Namespace) -> None:
-    agent_name = validate_name(args.agent) if args.agent else generate_name()
-    machine_name = validate_name(args.machine) if args.machine else generate_name()
-    print(f"agent: {agent_name}   machine: {machine_name}")
+    agent_name = args.agent or generate_free_name(RUNS_DIR, "agent")
+    machine_name = args.machine or generate_free_name(RUNS_DIR, "machine")
+    resumed = [
+        name
+        for name, kind in ((agent_name, "agent"), (machine_name, "machine"))
+        if transcript_path(RUNS_DIR, name, kind).exists()  # type: ignore[arg-type]
+    ]
+    note = f"   (resuming {', '.join(resumed)})" if resumed else ""
+    print(f"agent: {agent_name}   machine: {machine_name}{note}")
     print(
         f"transcripts: {transcript_path(RUNS_DIR, agent_name, 'agent')}  "
         f"{transcript_path(RUNS_DIR, machine_name, 'machine')}"

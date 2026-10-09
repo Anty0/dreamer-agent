@@ -92,7 +92,7 @@ class _Handler(BaseHTTPRequestHandler):
                         payload = json.dumps({"line": line_no, "event": event}, ensure_ascii=False)
                         self.wfile.write(f"data: {payload}\n\n".encode())
                     line_no += 1
-                self.wfile.flush()
+                self.wfile.write(b":\n\n")
                 time.sleep(_POLL_SECONDS)
         except (BrokenPipeError, ConnectionResetError):
             return

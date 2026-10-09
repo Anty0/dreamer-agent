@@ -164,7 +164,7 @@ numbers events.
 | `tool_use` | `tool_use_id`, `name`, `input` | A |
 | `tool_result` | `tool_use_id`, `content`, `is_error` | A |
 | `output` | `stdout`, `stderr`, `exit_code` | B |
-| `result` | `subtype`, `num_turns`, `duration_ms`, `usage`, `cost_usd` | both, per turn |
+| `result` | `subtype`, `num_turns`, `duration_ms`, `usage`, `cost_usd` (cumulative for the session) | both, per turn |
 | `compact` | `trigger` | both, from the PreCompact hook |
 | `error` | `message` | both |
 

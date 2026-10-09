@@ -68,14 +68,16 @@ def test_events_replays_then_tails(server: tuple[str, int, Path]) -> None:
     assert r.getheader("Content-Type", "").startswith("text/event-stream")
 
     def read_event() -> dict[str, object]:
-        lines: list[bytes] = []
         while True:
-            line = r.fp.readline()
-            if line in (b"\n", b""):
-                break
-            lines.append(line)
-        data = b"".join(line[len(b"data: "):] for line in lines if line.startswith(b"data: "))
-        return json.loads(data)  # type: ignore[no-any-return]
+            lines: list[bytes] = []
+            while True:
+                line = r.fp.readline()
+                if line in (b"\n", b""):
+                    break
+                lines.append(line)
+            data = b"".join(line[len(b"data: "):] for line in lines if line.startswith(b"data: "))
+            if data:
+                return json.loads(data)  # type: ignore[no-any-return]
 
     first = read_event()
     assert first == {"line": 1, "event": {"type": "user", "text": "hi"}}
@@ -86,4 +88,26 @@ def test_events_replays_then_tails(server: tuple[str, int, Path]) -> None:
         fh.write('xt":"ok"}\n')
     second = read_event()
     assert second == {"line": 2, "event": {"type": "text", "text": "ok"}}
+    c.close()
+
+
+def test_complete_lines_skips_partial_then_delivers_it(tmp_path: Path) -> None:
+    from dreamer.viewer import _complete_lines
+
+    p = tmp_path / "x.jsonl"
+    p.write_bytes(b'{"a":1}\n{"b"')
+    assert _complete_lines(p, 0) == (['{"a":1}'], 8)
+    with p.open("ab") as f:
+        f.write(b':2}\n')
+    assert _complete_lines(p, 8) == (['{"b":2}'], 16)
+
+
+def test_events_sends_heartbeat_while_idle(server: tuple[str, int, Path]) -> None:
+    host, port, runs = server
+    (runs / "fox.agent.jsonl").write_text('{"type":"session"}\n')
+    c = http.client.HTTPConnection(host, port, timeout=5)
+    c.request("GET", "/events?file=fox.agent.jsonl&from=1")
+    r = c.getresponse()
+    line = r.fp.readline()
+    assert line == b":\n"
     c.close()

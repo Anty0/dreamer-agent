@@ -40,6 +40,12 @@ def transcript_path(runs_dir: Path, name: str, kind: Kind) -> Path:
     return runs_dir / f"{name}.{kind}.jsonl"
 
 
+def generate_free_name(runs_dir: Path, kind: Kind) -> str:
+    while transcript_path(runs_dir, name := generate_name(), kind).exists():
+        pass
+    return name
+
+
 def read_events(path: Path) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     for line in path.read_text().splitlines():

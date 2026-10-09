@@ -63,3 +63,9 @@ def test_bash_tool_schema_and_name() -> None:
     assert tool.name == "Bash"
     assert tool.input_schema["required"] == ["command"]
     assert set(tool.input_schema["properties"]) == {"command", "description", "timeout"}
+
+
+def test_format_truncation_keeps_exit_code() -> None:
+    text, is_error = format_result(CommandOutput("x" * (MAX_OUTPUT_CHARS + 10), "", 3))
+    assert text.endswith("... [truncated]\nExit code 3")
+    assert is_error is True

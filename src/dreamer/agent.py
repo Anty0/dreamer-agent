@@ -68,13 +68,11 @@ BASH_SCHEMA: dict[str, Any] = {
 
 
 def format_result(out: CommandOutput) -> tuple[str, bool]:
-    text = out.stdout
-    if out.stderr:
-        text += out.stderr
-    if out.exit_code != 0:
-        text += f"\nExit code {out.exit_code}"
+    text = out.stdout + out.stderr
     if len(text) > MAX_OUTPUT_CHARS:
         text = text[:MAX_OUTPUT_CHARS] + "... [truncated]"
+    if out.exit_code != 0:
+        text += f"\nExit code {out.exit_code}"
     return text, out.exit_code != 0
 
 
@@ -85,7 +83,7 @@ def make_bash_tool(run_command: RunCommand) -> SdkMcpTool[Any]:
             text, is_error = format_result(await run_command(str(args["command"])))
         except MachineError as e:
             text, is_error = f"bash: command execution failed ({e.subtype})", True
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             text, is_error = f"bash: command execution failed ({type(e).__name__})", True
         return {"content": [{"type": "text", "text": text}], "is_error": is_error}
 
@@ -114,6 +112,7 @@ class Agent:
                 mcp_servers={"os": server},
                 allowed_tools=[TOOL_NAME],
                 permission_mode="bypassPermissions",
+                strict_mcp_config=True,
                 setting_sources=[],
                 cwd=cwd,
                 model=model,

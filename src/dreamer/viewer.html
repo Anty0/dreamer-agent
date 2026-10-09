@@ -179,7 +179,7 @@
       stats.events++;
       if (e.type === "tool_use") stats.tools++;
       if ((e.type === "tool_result" && e.is_error) || (e.type === "output" && e.exit_code !== 0)) stats.fails++;
-      if (e.type === "result") { stats.turns++; stats.cost += e.cost_usd ?? 0; }
+      if (e.type === "result") { stats.turns++; stats.cost = e.cost_usd ?? stats.cost; }
       if (e.type === "compact") stats.compacts++;
       $("#stats").innerHTML = [["events", stats.events], [kind === "machine" ? "commands" : "tool calls", kind === "machine" ? stats.turns : stats.tools],
         ["failures", stats.fails], ["turns", stats.turns], ["cost", "$" + stats.cost.toFixed(4)], ["compactions", stats.compacts]]
@@ -194,10 +194,9 @@
       for (const el of card.querySelectorAll("[data-raw]")) el.innerHTML = highlight(el.dataset.raw, query);
     }
     function highlight(text, q) {
-      const safe = esc(text);
-      if (!q) return safe;
-      const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-      return safe.replace(re, (m) => `<mark>${m}</mark>`);
+      if (!q) return esc(text);
+      const re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+      return String(text).split(re).map((part, i) => (i % 2 ? `<mark>${esc(part)}</mark>` : esc(part))).join("");
     }
   }
 

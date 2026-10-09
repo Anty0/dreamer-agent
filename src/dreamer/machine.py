@@ -58,16 +58,22 @@ def _prompt() -> str:
 
 class Machine:
     def __init__(
-        self, transcript: Transcript, name: str, model: str | None, scratch_dir: Path
+        self,
+        transcript: Transcript,
+        name: str,
+        model: str | None,
+        scratch_dir: Path,
+        client: ClaudeSDKClient | None = None,
     ) -> None:
         self._transcript = transcript
         self._session = start_session(transcript, name, "machine", model)
         scratch_dir.mkdir(parents=True, exist_ok=True)
-        self._client = ClaudeSDKClient(
+        self._client = client or ClaudeSDKClient(
             ClaudeAgentOptions(
                 tools=[],
                 setting_sources=[],
                 permission_mode="bypassPermissions",
+                strict_mcp_config=True,
                 cwd=scratch_dir,
                 model=model,
                 system_prompt=_prompt(),
@@ -78,6 +84,7 @@ class Machine:
             )
         )
         self._lock = asyncio.Lock()
+        self._stale_turn = False
 
     async def __aenter__(self) -> Machine:
         await self._client.connect()
@@ -88,14 +95,35 @@ class Machine:
 
     async def run(self, command: str) -> CommandOutput:
         async with self._lock:
-            self._transcript.write("user", text=command)
-            await self._client.query(command)
-            result: ResultMessage | None = None
-            async for message in self._client.receive_response():
-                if isinstance(message, ResultMessage):
-                    result = message
-            if result is None:
-                raise MachineError("no_result", [])
+            try:
+                return await self._run(command)
+            except asyncio.CancelledError:
+                self._stale_turn = True
+                raise
+            except Exception as e:
+                self._transcript.write("error", message=repr(e))
+                raise
+
+    async def _drain(self) -> ResultMessage | None:
+        result: ResultMessage | None = None
+        async for message in self._client.receive_response():
+            if isinstance(message, ResultMessage):
+                result = message
+        return result
+
+    async def _run(self, command: str) -> CommandOutput:
+        if self._stale_turn:
+            # Agent A's interrupt cancels this coroutine mid-turn while B's CLI keeps
+            # running; without draining, the next query returns the previous command's
+            # result and every later output is shifted by one.
+            await self._client.interrupt()
+            await self._drain()
+            self._stale_turn = False
+        self._transcript.write("user", text=command)
+        await self._client.query(command)
+        result = await self._drain()
+        if result is None:
+            raise MachineError("no_result", [])
             self._transcript.write(
                 "result",
                 subtype=result.subtype,
@@ -104,12 +132,8 @@ class Machine:
                 usage=result.usage,
                 cost_usd=result.total_cost_usd,
             )
-            try:
-                out = output_from_result(result.subtype, result.structured_output, result.errors)
-            except MachineError as e:
-                self._transcript.write("error", message=str(e), raw=result.result)
-                raise
-            self._transcript.write(
-                "output", stdout=out.stdout, stderr=out.stderr, exit_code=out.exit_code
-            )
-            return out
+        out = output_from_result(result.subtype, result.structured_output, result.errors)
+        self._transcript.write(
+            "output", stdout=out.stdout, stderr=out.stderr, exit_code=out.exit_code
+        )
+        return out

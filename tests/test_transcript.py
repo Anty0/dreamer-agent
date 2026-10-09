@@ -89,3 +89,12 @@ async def test_compact_hook_writes_event(tmp_path: Path) -> None:
     assert out == {}
     last = read_events(t.path)[-1]
     assert last["type"] == "compact" and last["trigger"] == "auto"
+
+
+def test_generate_free_name_skips_existing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from dreamer import transcript as mod
+
+    names = iter(["taken-fox", "taken-fox", "free-otter"])
+    monkeypatch.setattr(mod, "generate_name", lambda: next(names))
+    (tmp_path / "taken-fox.agent.jsonl").write_text("")
+    assert mod.generate_free_name(tmp_path, "agent") == "free-otter"
