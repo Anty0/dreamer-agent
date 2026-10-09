@@ -1,1 +1,212 @@
-<!doctype html><html><head><meta charset="utf-8"><title>dreamer</title></head><body>viewer</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dreamer</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --fg: #1c1e21; --muted: #6b7280; --card: #ffffff; --line: #e5e7eb;
+    --accent: #2563eb; --err: #dc2626; --err-bg: #fef2f2; --ok: #16a34a; --mark: #fde68a;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1115; --fg: #e5e7eb; --muted: #9ca3af; --card: #171a21; --line: #2a2f3a;
+            --accent: #60a5fa; --err: #f87171; --err-bg: #2a1515; --ok: #4ade80; --mark: #92400e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
+  header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line);
+           padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; z-index: 2; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header input[type=search] { flex: 1 1 220px; padding: 6px 10px; border: 1px solid var(--line);
+                              border-radius: 6px; background: var(--card); color: var(--fg); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; cursor: pointer;
+          background: var(--card); color: var(--muted); user-select: none; }
+  .chip.on { color: var(--fg); border-color: var(--accent); }
+  .stats { display: flex; gap: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+          margin: 0 0 8px; padding: 8px 12px; cursor: pointer; }
+  .card.err { background: var(--err-bg); border-color: var(--err); }
+  .card .head { display: flex; gap: 10px; align-items: baseline; }
+  .card .ts { color: var(--muted); font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .badge { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px;
+           border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .badge.user { color: var(--accent); border-color: var(--accent); }
+  .badge.tool_use, .badge.output { color: var(--fg); }
+  .exit { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; color: #fff;
+          background: var(--ok); }
+  .exit.bad { background: var(--err); }
+  .preview { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .preview.mono, .full pre { font-family: var(--mono); }
+  .full { display: none; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .card.open .full { display: block; }
+  .full pre { margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow: auto; }
+  .full h4 { margin: 8px 0 4px; font-size: 12px; color: var(--muted); }
+  .divider { text-align: center; color: var(--err); border-top: 2px dashed var(--err); margin: 16px 0; padding-top: 4px; }
+  mark { background: var(--mark); color: inherit; }
+  #jump { position: fixed; right: 16px; bottom: 16px; display: none; padding: 8px 14px; border-radius: 999px;
+          border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+  #jump.show { display: block; }
+  #runs a { display: block; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+            margin-bottom: 8px; color: var(--fg); text-decoration: none; background: var(--card); }
+  #runs .meta { color: var(--muted); font-size: 12px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">dreamer</h1>
+  <input id="search" type="search" placeholder="search…" class="hidden">
+  <div id="chips" class="chips"></div>
+  <div id="stats" class="stats"></div>
+</header>
+<main>
+  <div id="runs"></div>
+  <div id="timeline"></div>
+</main>
+<button id="jump">jump to latest</button>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const file = new URLSearchParams(location.search).get("file");
+  if (!file) return showRuns();
+  showTranscript(file);
+
+  async function showRuns() {
+    const runs = await (await fetch("/runs")).json();
+    const el = $("#runs");
+    if (!runs.length) { el.textContent = "No transcripts in runs/ yet."; return; }
+    for (const r of runs.sort((a, b) => b.mtime - a.mtime)) {
+      const a = document.createElement("a");
+      a.href = `/?file=${encodeURIComponent(r.file)}`;
+      a.innerHTML = `<strong>${esc(r.name)}</strong> <span class="badge">${r.kind}</span>
+        <div class="meta">${fmtSize(r.size)} · ${new Date(r.mtime * 1000).toLocaleString()}</div>`;
+      el.appendChild(a);
+    }
+  }
+
+  function showTranscript(file) {
+    const kind = file.endsWith(".machine.jsonl") ? "machine" : "agent";
+    document.title = `dreamer · ${file}`;
+    $("#title").textContent = file;
+    $("#search").classList.remove("hidden");
+    const types = kind === "machine"
+      ? ["session", "user", "output", "result", "compact", "error"]
+      : ["session", "user", "text", "thinking", "tool_use", "tool_result", "result", "compact", "error"];
+    const on = new Set(types.filter((t) => !["session", "result"].includes(t)));
+    const chips = $("#chips");
+    for (const t of types) {
+      const c = document.createElement("span");
+      c.className = "chip" + (on.has(t) ? " on" : ""); c.textContent = t; c.dataset.type = t;
+      c.onclick = () => { on.has(t) ? on.delete(t) : on.add(t); c.classList.toggle("on"); applyFilters(); };
+      chips.appendChild(c);
+    }
+
+    const timeline = $("#timeline");
+    const stats = { events: 0, tools: 0, fails: 0, turns: 0, cost: 0, compacts: 0 };
+    const cards = [];
+    let follow = true;
+    let query = "";
+
+    $("#search").oninput = (e) => { query = e.target.value.toLowerCase(); applyFilters(); };
+    window.addEventListener("scroll", () => {
+      const atBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 40;
+      follow = atBottom; $("#jump").classList.toggle("show", !atBottom);
+    });
+    $("#jump").onclick = () => { follow = true; window.scrollTo(0, document.body.scrollHeight); };
+
+    const es = new EventSource(`/events?file=${encodeURIComponent(file)}&from=0`);
+    es.onmessage = (m) => {
+      const { event } = JSON.parse(m.data);
+      addCard(event); updateStats(event);
+      if (follow) window.scrollTo(0, document.body.scrollHeight);
+    };
+
+    function addCard(e) {
+      const card = document.createElement("div");
+      if (e.type === "compact") {
+        card.className = "divider"; card.textContent = `context compacted (${e.trigger ?? "?"}) · ${fmtTs(e.ts)}`;
+        card.dataset.type = "compact"; card.dataset.text = "compact";
+        timeline.appendChild(card); cards.push(card); return;
+      }
+      card.className = "card"; card.dataset.type = e.type;
+      const { preview, mono, sections, error, exit } = describe(e);
+      if (error) card.classList.add("err");
+      card.dataset.text = (preview + " " + sections.map((s) => s.body).join(" ")).toLowerCase();
+      const head = document.createElement("div"); head.className = "head";
+      head.innerHTML = `<span class="ts">${fmtTs(e.ts)}</span><span class="badge ${e.type}">${e.type}</span>`;
+      if (exit !== undefined) {
+        const x = document.createElement("span"); x.className = "exit" + (exit ? " bad" : ""); x.textContent = `exit ${exit}`;
+        head.appendChild(x);
+      }
+      const p = document.createElement("span"); p.className = "preview" + (mono ? " mono" : "");
+      p.textContent = preview; p.dataset.raw = preview; head.appendChild(p);
+      card.appendChild(head);
+      const full = document.createElement("div"); full.className = "full";
+      for (const s of sections) {
+        if (s.title) { const h = document.createElement("h4"); h.textContent = s.title; full.appendChild(h); }
+        const pre = document.createElement("pre"); pre.textContent = s.body; pre.dataset.raw = s.body; full.appendChild(pre);
+      }
+      card.appendChild(full);
+      card.onclick = () => card.classList.toggle("open");
+      timeline.appendChild(card); cards.push(card);
+      applyFilterTo(card);
+    }
+
+    function describe(e) {
+      const j = (v) => JSON.stringify(v, null, 2);
+      switch (e.type) {
+        case "session": return { preview: `${e.resumed ? "resumed" : "started"} ${e.name} · ${e.model ?? "default model"} · ${e.session_id}`, mono: false, sections: [{ body: j(e) }] };
+        case "user": return kind === "machine"
+          ? { preview: `$ ${e.text}`, mono: true, sections: [{ body: e.text }] }
+          : { preview: e.text, mono: false, sections: [{ body: e.text }] };
+        case "text": case "thinking": return { preview: e.text, mono: false, sections: [{ body: e.text }] };
+        case "tool_use": return { preview: `$ ${e.input?.command ?? ""}`, mono: true,
+          sections: [{ title: "command", body: e.input?.command ?? "" }, { title: "input", body: j(e.input) }] };
+        case "tool_result": { const body = flat(e.content); return { preview: firstLine(body), mono: true, error: !!e.is_error, sections: [{ body }] }; }
+        case "output": return { preview: firstLine(e.stdout) || firstLine(e.stderr) || "(no output)", mono: true, exit: e.exit_code,
+          error: e.exit_code !== 0, sections: [{ title: "stdout", body: e.stdout }, ...(e.stderr ? [{ title: "stderr", body: e.stderr }] : [])] };
+        case "result": return { preview: `${e.subtype} · ${e.num_turns} turns · ${(e.duration_ms / 1000).toFixed(1)}s` + (e.cost_usd != null ? ` · $${e.cost_usd.toFixed(4)}` : ""), mono: false, sections: [{ body: j(e) }] };
+        case "error": return { preview: e.message, mono: false, error: true, sections: [{ body: j(e) }] };
+        default: return { preview: j(e), mono: true, sections: [{ body: j(e) }] };
+      }
+    }
+
+    function updateStats(e) {
+      stats.events++;
+      if (e.type === "tool_use") stats.tools++;
+      if ((e.type === "tool_result" && e.is_error) || (e.type === "output" && e.exit_code !== 0)) stats.fails++;
+      if (e.type === "result") { stats.turns++; stats.cost += e.cost_usd ?? 0; }
+      if (e.type === "compact") stats.compacts++;
+      $("#stats").innerHTML = [["events", stats.events], [kind === "machine" ? "commands" : "tool calls", kind === "machine" ? stats.turns : stats.tools],
+        ["failures", stats.fails], ["turns", stats.turns], ["cost", "$" + stats.cost.toFixed(4)], ["compactions", stats.compacts]]
+        .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join("");
+    }
+
+    function applyFilters() { cards.forEach(applyFilterTo); }
+    function applyFilterTo(card) {
+      const typeOk = on.has(card.dataset.type);
+      const textOk = !query || card.dataset.text.includes(query);
+      card.classList.toggle("hidden", !(typeOk && textOk));
+      for (const el of card.querySelectorAll("[data-raw]")) el.innerHTML = highlight(el.dataset.raw, query);
+    }
+    function highlight(text, q) {
+      const safe = esc(text);
+      if (!q) return safe;
+      const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      return safe.replace(re, (m) => `<mark>${m}</mark>`);
+    }
+  }
+
+  function flat(c) { return typeof c === "string" ? c : Array.isArray(c) ? c.map((b) => b.text ?? JSON.stringify(b)).join("\n") : c == null ? "" : JSON.stringify(c, null, 2); }
+  function firstLine(s) { return (s ?? "").split("\n").find((l) => l.trim()) ?? ""; }
+  function fmtTs(ts) { return ts ? ts.slice(11, 23) : ""; }
+  function fmtSize(n) { return n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+})();
+</script>
+</body>
+</html>
