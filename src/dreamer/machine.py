@@ -8,13 +8,27 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient, HookMatcher, ResultMessage
+from claude_agent_sdk import (
+    ClaudeAgentOptions,
+    ClaudeSDKClient,
+    HookMatcher,
+    ResultMessage,
+    SdkPluginConfig,
+)
 
 from dreamer.transcript import Transcript, compact_hook, start_session
 
-# Stops the CLI injecting deferred-tool and proactivity reminders neither agent
-# can act on; there is no SDK option for it.
-QUIET_ENV = {"CLAUDE_CODE_DISABLE_ATTACHMENTS": "1", "SHELL": "/bin/bash"}
+# The CLI injects host platform, clock, model, account email and tool reminders
+# into every session; no SDK option turns that off. The mod drops them, and only
+# loads with the function-hooks flag set.
+QUIET_ENV = {
+    "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS": "1",
+    "CLAUDE_CODE_DISABLE_ATTACHMENTS": "1",
+    "SHELL": "/bin/bash",
+}
+QUIET_PLUGINS: list[SdkPluginConfig] = [
+    {"type": "local", "path": str(files("dreamer").joinpath("mods/quiet"))}
+]
 
 OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -80,6 +94,7 @@ class Machine:
                 strict_mcp_config=True,
                 cwd=scratch_dir,
                 env=QUIET_ENV,
+                plugins=QUIET_PLUGINS,
                 model=model,
                 system_prompt=_prompt(),
                 output_format={"type": "json_schema", "schema": OUTPUT_SCHEMA},

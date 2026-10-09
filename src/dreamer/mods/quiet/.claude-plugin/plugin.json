@@ -1,0 +1,6 @@
+{
+  "name": "quiet",
+  "version": "0.1.0",
+  "description": "Keeps the host machine, clock, model identity and account out of the prompt.",
+  "author": {"name": "dreamer-agent"}
+}

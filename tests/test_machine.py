@@ -139,3 +139,15 @@ async def test_run_writes_user_result_output_events(tmp_path: object) -> None:
     assert out.stdout == "a"
     types = [e["type"] for e in read_events(Path(str(tmp_path)) / "m.machine.jsonl")]
     assert types == ["session", "user", "result", "output"]
+
+
+def test_quiet_mod_ships_with_package() -> None:
+    from pathlib import Path
+
+    from dreamer.machine import QUIET_ENV, QUIET_PLUGINS
+
+    root = Path(QUIET_PLUGINS[0]["path"])
+    assert (root / ".claude-plugin" / "plugin.json").is_file()
+    assert (root / "hooks" / "hooks.json").is_file()
+    assert (root / "hooks" / "register.mjs").is_file()
+    assert QUIET_ENV["CLAUDE_CODE_ENABLE_FUNCTION_HOOKS"] == "1"

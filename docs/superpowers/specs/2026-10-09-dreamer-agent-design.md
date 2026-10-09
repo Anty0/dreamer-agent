@@ -144,11 +144,12 @@ the scratch directory is therefore a fresh `tempfile.mkdtemp()` path, and the pr
 states that nothing about the hosting process is visible.
 
 The CLI also attaches the host platform, shell, OS version, model, date, and the
-account email to both agents, and the SDK has no option to suppress any of it
-(`CLAUDE_CODE_DISABLE_ATTACHMENTS` only drops deferred-tool and proactivity
-reminders; `CLAUDE_CODE_OVERRIDE_DATE` and `CLAUDE_CODE_HOST_PLATFORM` have no effect
-on the prompt). Both prompts therefore say those notes describe the user's terminal
-client, not the machine, and B is told never to reuse a name from them.
+account email to both agents, and the SDK has no option to suppress any of it. A
+Claude Code mod shipped in `src/dreamer/mods/quiet` (function hooks, early access,
+loaded through the SDK's `plugins` option with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`)
+drops the `environment`, `model` and `date` attachments and empties the context
+blocks that carry the email. Both prompts also say that any such notes describe the
+user's terminal client, as a fallback for when the hook API changes.
 
 ## Transcripts
 
