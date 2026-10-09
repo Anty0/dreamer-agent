@@ -154,10 +154,11 @@ Each agent writes `runs/<name>.agent.jsonl` or `runs/<name>.machine.jsonl`. Appe
 only, one JSON object per line, flushed per event so a viewer can tail it. Envelope:
 
 ```json
-{"ts": "2026-10-09T12:34:56.789Z", "seq": 42, "type": "...", ...}
+{"ts": "2026-10-09T12:34:56.789Z", "type": "...", ...}
 ```
 
-`seq` restarts at 0 per process; `ts` is UTC ISO 8601.
+`ts` is UTC ISO 8601. A line's position in the file is its index; nothing else
+numbers events.
 
 | type | fields | written by |
 |---|---|---|
@@ -186,8 +187,8 @@ Endpoints:
 
 - `GET /` serves `viewer.html`.
 - `GET /runs` returns JSON: every `runs/*.jsonl` with name, kind, size, mtime.
-- `GET /events?file=<name>&from=<seq>` is an SSE stream: replays existing lines from
-  `from`, then tails the file and sends each new line as it lands. `file` is
+- `GET /events?file=<name>&from=<line>` is an SSE stream: replays existing lines
+  starting at index `from`, then tails the file and sends each new line as it lands. `file` is
   validated against the names in `runs/`, never used as a path.
 
 The page:
