@@ -127,3 +127,15 @@ async def test_run_after_cancel_drains_stale_turn(tmp_path: object) -> None:
     out = await m.run("ls")  # type: ignore[attr-defined]
     assert client.interrupts == 1
     assert out.stdout == "fresh"
+
+
+async def test_run_writes_user_result_output_events(tmp_path: object) -> None:
+    from pathlib import Path
+
+    from dreamer.transcript import read_events
+
+    m = _machine(tmp_path, _FakeClient([_result()]))
+    out = await m.run("ls")  # type: ignore[attr-defined]
+    assert out.stdout == "a"
+    types = [e["type"] for e in read_events(Path(str(tmp_path)) / "m.machine.jsonl")]
+    assert types == ["session", "user", "result", "output"]

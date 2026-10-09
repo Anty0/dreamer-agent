@@ -124,14 +124,14 @@ class Machine:
         result = await self._drain()
         if result is None:
             raise MachineError("no_result", [])
-            self._transcript.write(
-                "result",
-                subtype=result.subtype,
-                num_turns=result.num_turns,
-                duration_ms=result.duration_ms,
-                usage=result.usage,
-                cost_usd=result.total_cost_usd,
-            )
+        self._transcript.write(
+            "result",
+            subtype=result.subtype,
+            num_turns=result.num_turns,
+            duration_ms=result.duration_ms,
+            usage=result.usage,
+            cost_usd=result.total_cost_usd,
+        )
         out = output_from_result(result.subtype, result.structured_output, result.errors)
         self._transcript.write(
             "output", stdout=out.stdout, stderr=out.stderr, exit_code=out.exit_code
