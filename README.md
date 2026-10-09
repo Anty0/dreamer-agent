@@ -44,7 +44,8 @@ dreamer --agent new-dev --machine box     # fresh engineer, same old machine
 dreamer --model claude-opus-5-5 --machine-model claude-sonnet-5-5
 ```
 
-Type `/quit` or press Ctrl-D to leave. Ctrl-C interrupts the current turn.
+Type `/quit` or press Ctrl-D to leave. Ctrl-C asks the agent to stop; a command already
+in flight finishes first.
 
 The terminal shows only A's prose and each command it runs. Open the viewers for
 everything else:

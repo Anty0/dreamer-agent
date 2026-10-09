@@ -41,9 +41,11 @@ def transcript_path(runs_dir: Path, name: str, kind: Kind) -> Path:
 
 
 def generate_free_name(runs_dir: Path, kind: Kind) -> str:
-    while transcript_path(runs_dir, name := generate_name(), kind).exists():
-        pass
-    return name
+    for _ in range(20):
+        name = generate_name()
+        if not transcript_path(runs_dir, name, kind).exists():
+            return name
+    return f"{name}-{uuid.uuid4().hex[:6]}"
 
 
 def read_events(path: Path) -> list[dict[str, Any]]:

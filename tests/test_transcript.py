@@ -98,3 +98,15 @@ def test_generate_free_name_skips_existing(tmp_path: Path, monkeypatch: pytest.M
     monkeypatch.setattr(mod, "generate_name", lambda: next(names))
     (tmp_path / "taken-fox.agent.jsonl").write_text("")
     assert mod.generate_free_name(tmp_path, "agent") == "free-otter"
+
+
+def test_generate_free_name_falls_back_to_suffix_when_all_taken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from dreamer import transcript as mod
+
+    monkeypatch.setattr(mod, "generate_name", lambda: "same-fox")
+    (tmp_path / "same-fox.agent.jsonl").write_text("")
+    name = mod.generate_free_name(tmp_path, "agent")
+    assert name.startswith("same-fox-") and validate_name(name)
+    assert not (tmp_path / f"{name}.agent.jsonl").exists()
