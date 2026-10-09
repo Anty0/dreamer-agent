@@ -151,3 +151,14 @@ def test_quiet_mod_ships_with_package() -> None:
     assert (root / "hooks" / "hooks.json").is_file()
     assert (root / "hooks" / "register.mjs").is_file()
     assert QUIET_ENV["CLAUDE_CODE_ENABLE_FUNCTION_HOOKS"] == "1"
+
+
+def test_machine_backend_routes_ollama_prefix_to_local_server() -> None:
+    from dreamer.machine import machine_backend
+
+    assert machine_backend("ollama:qwen3.5:0.8b") == (
+        "qwen3.5:0.8b",
+        {"ANTHROPIC_BASE_URL": "http://localhost:11434", "ANTHROPIC_AUTH_TOKEN": "ollama"},
+    )
+    assert machine_backend("claude-haiku-5-5") == ("claude-haiku-5-5", {})
+    assert machine_backend(None) == (None, {})

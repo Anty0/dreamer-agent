@@ -42,7 +42,12 @@ dreamer "Build a Flask todo app and run its tests"
 dreamer --agent fox --machine box         # resume both by name next time
 dreamer --agent new-dev --machine box     # fresh engineer, same old machine
 dreamer --model claude-opus-5-5 --machine-model claude-sonnet-5-5
+dreamer --machine-model ollama:qwen3.5:0.8b  # a tiny local model dreams the machine
 ```
+
+The `ollama:` prefix sends only the machine's traffic to a local [Ollama](https://ollama.com)
+server (`OLLAMA_HOST` overrides the default `http://localhost:11434`). The agent stays on
+your Claude subscription. Small models make wonderfully broken machines.
 
 Type `/quit` or press Ctrl-D to leave. Ctrl-C asks the agent to stop; a command already
 in flight finishes first.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
@@ -70,6 +71,18 @@ def output_from_result(
     )
 
 
+def machine_backend(model: str | None) -> tuple[str | None, dict[str, str]]:
+    """Split `ollama:<name>` into the model name and the env that routes B's CLI
+    to the local Ollama server; anything else goes to Anthropic unchanged."""
+    if model and model.startswith("ollama:"):
+        host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+        return model.removeprefix("ollama:"), {
+            "ANTHROPIC_BASE_URL": host,
+            "ANTHROPIC_AUTH_TOKEN": "ollama",
+        }
+    return model, {}
+
+
 def _prompt() -> str:
     return files("dreamer").joinpath("prompts/machine.md").read_text()
 
@@ -83,6 +96,7 @@ class Machine:
         scratch_dir: Path,
         client: ClaudeSDKClient | None = None,
     ) -> None:
+        model, backend_env = machine_backend(model)
         self._transcript = transcript
         self._session = start_session(transcript, name, "machine", model)
         scratch_dir.mkdir(parents=True, exist_ok=True)
@@ -93,7 +107,7 @@ class Machine:
                 permission_mode="bypassPermissions",
                 strict_mcp_config=True,
                 cwd=scratch_dir,
-                env=QUIET_ENV,
+                env={**QUIET_ENV, **backend_env},
                 plugins=QUIET_PLUGINS,
                 model=model,
                 system_prompt=_prompt(),
