@@ -6,11 +6,12 @@ import json
 import random
 import re
 import uuid
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
+
+from claude_agent_sdk import HookCallback, HookContext, HookInput, HookJSONOutput
 
 Kind = Literal["agent", "machine"]
 
@@ -77,8 +78,13 @@ class SessionStart:
     session_id: str
     resumed: bool
 
-    def sdk_options(self) -> dict[str, str]:
-        return {"resume": self.session_id} if self.resumed else {"session_id": self.session_id}
+    @property
+    def resume_id(self) -> str | None:
+        return self.session_id if self.resumed else None
+
+    @property
+    def new_id(self) -> str | None:
+        return None if self.resumed else self.session_id
 
 
 def start_session(transcript: Transcript, name: str, kind: Kind, model: str | None) -> SessionStart:
@@ -95,13 +101,10 @@ def start_session(transcript: Transcript, name: str, kind: Kind, model: str | No
     return start
 
 
-HookFn = Callable[[dict[str, Any], str | None, Any], Awaitable[dict[str, Any]]]
-
-
-def compact_hook(transcript: Transcript) -> HookFn:
+def compact_hook(transcript: Transcript) -> HookCallback:
     async def hook(
-        input_data: dict[str, Any], tool_use_id: str | None, context: Any
-    ) -> dict[str, Any]:
+        input_data: HookInput, tool_use_id: str | None, context: HookContext
+    ) -> HookJSONOutput:
         transcript.write("compact", trigger=input_data.get("trigger"))
         return {}
 
