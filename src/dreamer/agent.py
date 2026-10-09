@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
 from claude_agent_sdk import (
@@ -97,7 +98,12 @@ def _prompt() -> str:
 
 class Agent:
     def __init__(
-        self, transcript: Transcript, name: str, model: str | None, run_command: RunCommand
+        self,
+        transcript: Transcript,
+        name: str,
+        model: str | None,
+        run_command: RunCommand,
+        cwd: Path,
     ) -> None:
         self.transcript = transcript
         self._session = start_session(transcript, name, "agent", model)
@@ -109,6 +115,7 @@ class Agent:
                 allowed_tools=[TOOL_NAME],
                 permission_mode="bypassPermissions",
                 setting_sources=[],
+                cwd=cwd,
                 model=model,
                 system_prompt=_prompt(),
                 hooks={"PreCompact": [HookMatcher(hooks=[compact_hook(transcript)])]},
