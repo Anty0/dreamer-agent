@@ -143,6 +143,13 @@ leaked the real username and the repo name into `whoami`, `pwd`, and the hostnam
 the scratch directory is therefore a fresh `tempfile.mkdtemp()` path, and the prompt
 states that nothing about the hosting process is visible.
 
+The CLI also attaches the host platform, shell, OS version, model, date, and the
+account email to both agents, and the SDK has no option to suppress any of it
+(`CLAUDE_CODE_DISABLE_ATTACHMENTS` only drops deferred-tool and proactivity
+reminders; `CLAUDE_CODE_OVERRIDE_DATE` and `CLAUDE_CODE_HOST_PLATFORM` have no effect
+on the prompt). Both prompts therefore say those notes describe the user's terminal
+client, not the machine, and B is told never to reuse a name from them.
+
 ## Transcripts
 
 Each agent writes `runs/<name>.agent.jsonl` or `runs/<name>.machine.jsonl`. Append

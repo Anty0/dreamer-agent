@@ -12,6 +12,10 @@ from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient, HookMatcher, R
 
 from dreamer.transcript import Transcript, compact_hook, start_session
 
+# Stops the CLI injecting deferred-tool and proactivity reminders neither agent
+# can act on; there is no SDK option for it.
+QUIET_ENV = {"CLAUDE_CODE_DISABLE_ATTACHMENTS": "1", "SHELL": "/bin/bash"}
+
 OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -75,6 +79,7 @@ class Machine:
                 permission_mode="bypassPermissions",
                 strict_mcp_config=True,
                 cwd=scratch_dir,
+                env=QUIET_ENV,
                 model=model,
                 system_prompt=_prompt(),
                 output_format={"type": "json_schema", "schema": OUTPUT_SCHEMA},

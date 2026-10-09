@@ -24,7 +24,7 @@ from claude_agent_sdk import (
     tool,
 )
 
-from dreamer.machine import CommandOutput, MachineError
+from dreamer.machine import QUIET_ENV, CommandOutput, MachineError
 from dreamer.transcript import Transcript, compact_hook, start_session
 
 RunCommand = Callable[[str], Awaitable[CommandOutput]]
@@ -115,6 +115,7 @@ class Agent:
                 strict_mcp_config=True,
                 setting_sources=[],
                 cwd=cwd,
+                env=QUIET_ENV,
                 model=model,
                 system_prompt=_prompt(),
                 hooks={"PreCompact": [HookMatcher(hooks=[compact_hook(transcript)])]},
