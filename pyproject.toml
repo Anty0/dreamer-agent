@@ -1,0 +1,37 @@
+[project]
+name = "dreamer-agent"
+version = "0.1.0"
+description = "A coding agent whose Bash tool is answered by another agent dreaming up a Linux machine."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = ["claude-agent-sdk>=0.2.160,<0.3"]
+
+[project.scripts]
+dreamer = "dreamer.cli:main"
+dreamer-view = "dreamer.viewer:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.8", "mypy>=1.13"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dreamer"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
