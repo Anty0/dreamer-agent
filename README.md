@@ -1,12 +1,27 @@
-# dreamer-agent
+# Dreamer Agent
+
+> [!NOTE]
+> Fully vibe-coded project.
 
 A coding agent whose only tool is `Bash`. The tool runs nothing. Every command is
-answered by a second agent that has been told one thing: *you are a Linux-based
-operating system*. It invents the filesystem, the packages, the error messages, and
+answered by a second agent that has been told one thing: _you are a Linux-based
+operating system_. It invents the filesystem, the packages, the error messages, and
 has to stay consistent with everything it already said.
 
 The question this project exists to ask: how far can an agent build and "run" a
 project on a machine that is itself a language model, and where does it break?
+
+## Motivation (the only non-vibe-coded section here :3)
+
+Ever since I first saw ChatGPT, I was taken aback by its ability to fake a Linux
+terminal. I had a prompt that turned a ChatGPT conversation into a shell and let
+you "run" commands. Hunting for where it breaks was so much fun, and the whole OS
+was a bit like Schrödinger's cat: you didn't know what was on that simulated PC
+until you ran a command that showed you. I was amazed by the idea of an OS being
+created as you use it. This project isn't quite that (though check out this crazy
+video: <https://www.youtube.com/watch?v=7NfyZhV1dKM>), but it evokes the same
+feeling. Watching Opus implement a whole project and Haiku "execute" it somehow
+feels wrong, like it shouldn't be possible.
 
 ## How it works
 
