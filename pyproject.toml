@@ -7,6 +7,10 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = ["claude-agent-sdk>=0.2.160,<0.3"]
 
+[project.urls]
+Repository = "https://github.com/Anty0/dreamer-agent"
+Issues = "https://github.com/Anty0/dreamer-agent/issues"
+
 [project.scripts]
 dreamer = "dreamer.cli:main"
 dreamer-view = "dreamer.viewer:main"

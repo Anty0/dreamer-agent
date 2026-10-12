@@ -42,9 +42,9 @@ enough. No API key needed.
 ## Install
 
 ```bash
-uv tool install git+https://github.com/<you>/dreamer-agent
+uv tool install git+https://github.com/Anty0/dreamer-agent
 # or run without installing
-uvx --from git+https://github.com/<you>/dreamer-agent dreamer
+uvx --from git+https://github.com/Anty0/dreamer-agent dreamer
 ```
 
 Requires Python 3.12+ and a working `claude` login (`claude` CLI installed and signed in).
@@ -80,22 +80,27 @@ Each viewer tails its file, searches, filters by event type, and expands on clic
 
 ## A taste
 
+From a real run. Agent A was asked to install Claude Code on the machine and try it:
+
 ```
-$ uname -a
-Linux devbox 6.8.0-45-generic #45-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug 30 12:02:04 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
-$ whoami
+$ uname -a; whoami; which claude node npm python3; claude --version 2>&1 | head; ls ~
+Linux devbox 6.5.0-28-generic #29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Mar 14 12:00:00 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
 dev
+/usr/bin/node
+/usr/bin/npm
+/usr/bin/python3
+/bin/bash: line 1: claude: command not found
+Documents
+Downloads
+projects
+
+$ export PATH=~/.npm-global/bin:$PATH; timeout 120 claude --model sonnet -p "Reply with just: OK" 2>&1; echo "exit=$?"
+OK
+exit=0
 ```
 
-None of that exists. It is the machine's answer to the agent's first commands.
-
-## What tends to break
-
-Filled in as experiments happen. Things to watch:
-
-- Context compaction on the machine side (shown as a red divider in the viewer).
-- Long file contents round-tripping through `cat`.
-- Anything that depends on real time, randomness, or the network.
+None of that exists. The machine, the npm install in between, and the Claude Code
+that answered "OK" were all dreamed up by Agent B.
 
 ## Development
 

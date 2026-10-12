@@ -1530,7 +1530,7 @@ git commit -m "Add transcript viewer page"
 ```
 MIT License
 
-Copyright (c) 2026 anty
+Copyright (c) 2026 Anty0
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1585,9 +1585,9 @@ enough. No API key needed.
 ## Install
 
 ```bash
-uv tool install git+https://github.com/<you>/dreamer-agent
+uv tool install git+https://github.com/Anty0/dreamer-agent
 # or run without installing
-uvx --from git+https://github.com/<you>/dreamer-agent dreamer
+uvx --from git+https://github.com/Anty0/dreamer-agent dreamer
 ```
 
 Requires Python 3.12+ and a working `claude` login (`claude` CLI installed and signed in).
